@@ -1,0 +1,14 @@
+.vscode
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+.env
+.agent
+*.db
+.venv/
+__pycache__/
+dist/
+.DS_Store
