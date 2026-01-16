@@ -3,6 +3,8 @@ import { z } from "zod"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
+import { ItemsService } from "../../client/sdk.gen"
+
 // 使用zod来约束value的类型
 const formSchema = z.object({
     value: z.string(),
@@ -25,8 +27,14 @@ const Study = (data: PropsData) => {
         value: "你好哇",
     })
     useEffect(() => {
-        console.log(data)
+        getInfo()
     }, [])
+
+    const getInfo = async () => {
+        const res = await ItemsService.getOrderInfo({ order_id: "1" })
+        console.log(res)
+    }
+
     return (
         <div>
             <Select value={value.value} onValueChange={(value) => setValue({ value })}>

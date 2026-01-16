@@ -52,28 +52,40 @@ class Settings(BaseSettings):
     SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str = ""
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
+    POSTGRES_USER: str = ""
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+
+    # MySQL
+    DB_HOST: str = ""
+    DB_PORT: int = 3306
+    DB_USER: str = ""
+    DB_PASSWORD: str = ""
+    DB_NAME: str = ""
+    DB_ECHO: bool = False
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        if self.ENVIRONMENT == "local" and not self.POSTGRES_SERVER:
-            import os
-            # Get the path to the backend directory
-            current_dir = os.path.dirname(os.path.abspath(__file__)) # app/core
-            backend_dir = os.path.dirname(os.path.dirname(current_dir)) # backend
-            db_path = os.path.join(backend_dir, "app.db").replace("\\", "/")
-            return f"sqlite:///{db_path}"
-        return str(AnyUrl.build(
-            scheme="postgresql+psycopg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
-        ))
+        if self.DB_HOST:
+            return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        if self.POSTGRES_SERVER:
+            return str(AnyUrl.build(
+                scheme="postgresql+psycopg",
+                username=self.POSTGRES_USER,
+                password=self.POSTGRES_PASSWORD,
+                host=self.POSTGRES_SERVER,
+                port=self.POSTGRES_PORT,
+                path=self.POSTGRES_DB,
+            ))
+        
+        # Default to SQLite for local development
+        import os
+        # Get the path to the backend directory
+        current_dir = os.path.dirname(os.path.abspath(__file__)) # app/core
+        backend_dir = os.path.dirname(os.path.dirname(current_dir)) # backend
+        db_path = os.path.join(backend_dir, "app.db").replace("\\", "/")
+        return f"sqlite:///{db_path}"
 
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False

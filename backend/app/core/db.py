@@ -7,6 +7,7 @@ from app.schemas import UserCreate
 
 engine = create_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
+    echo=settings.DB_ECHO,
     connect_args={"check_same_thread": False} if str(settings.SQLALCHEMY_DATABASE_URI).startswith("sqlite") else {},
 )
 
