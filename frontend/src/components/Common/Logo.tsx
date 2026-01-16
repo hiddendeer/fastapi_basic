@@ -2,9 +2,9 @@ import { Link } from "@tanstack/react-router"
 
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import icon from "/assets/images/fastapi-icon.svg"
+import icon from "/assets/images/iking-icon.png"
 import iconLight from "/assets/images/fastapi-icon-light.svg"
-import logo from "/assets/images/fastapi-logo.svg"
+import logo from "/assets/images/iking-logo.png"
 import logoLight from "/assets/images/fastapi-logo-light.svg"
 
 interface LogoProps {
