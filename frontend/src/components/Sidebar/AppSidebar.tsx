@@ -16,6 +16,7 @@ const baseItems: Item[] = [
   { icon: Home, title: "Dashboard", path: "/" },
   { icon: Briefcase, title: "Items", path: "/items" },
   { icon: LayoutList, title: "项目设置", path: "/setup" },
+  { icon: LayoutList, title: "链式调用", path: "/chain-invoke" },
 ]
 
 export function AppSidebar() {

@@ -23,6 +23,7 @@ type FormData = z.infer<typeof formSchema>
 type PropsData = z.infer<typeof propsSchema>
 
 const Study = (data: PropsData) => {
+    console.log(data)
     const [value, setValue] = useState<FormData>({
         value: "你好哇",
     })

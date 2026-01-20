@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     DB_NAME: str = ""
     DB_ECHO: bool = False
 
+    # LLM
+    LLM_MODEL_ID: str = "gpt-3.5-turbo"
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = ""
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
