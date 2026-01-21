@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { Send, Languages, Sparkles, User, Bot, Trash2 } from "lucide-react"
+import { Send, Languages, Sparkles, User, Bot, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -19,6 +19,15 @@ export const ProjectTable = () => {
     const [targetLang, setTargetLang] = useState("中文")
     const [isStreaming, setIsStreaming] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const langMap: Record<string, string> = {
+        中文: "zh-CN",
+        English: "en-US",
+        日本語: "ja-JP",
+        Français: "fr-FR",
+        Deutsch: "de-DE",
+    }
 
     // 自动滚动到最新消息
     useEffect(() => {
@@ -39,7 +48,7 @@ export const ProjectTable = () => {
 
         // 准备开始流式接收
         setIsStreaming(true)
-        const assistantMsg: Message = { role: "assistant", content: "", language: targetLang }
+        const assistantMsg: Message = { role: "assistant", content: "", language: langMap[targetLang] }
         setMessages(prev => [...prev, assistantMsg])
 
         try {
@@ -54,7 +63,7 @@ export const ProjectTable = () => {
                 },
                 body: JSON.stringify({
                     text: userText,
-                    target_language: targetLang,
+                    target_language: langMap[targetLang],
                 }),
             })
 
@@ -102,6 +111,91 @@ export const ProjectTable = () => {
         }
     }
 
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file || isStreaming) return
+
+        // 验证文件类型
+        const allowedTypes = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/msword"
+        ]
+        if (!allowedTypes.includes(file.type) && !file.name.endsWith(".pdf") && !file.name.endsWith(".docx") && !file.name.endsWith(".doc")) {
+            alert("请上传 PDF, Word (.docx) 或 Word (.doc) 文件")
+            return
+        }
+
+        // 添加用户消息（显示文件名）
+        const userMsg: Message = { role: "user", content: `上传文件: ${file.name}` }
+        setMessages(prev => [...prev, userMsg])
+
+        setIsStreaming(true)
+        const assistantMsg: Message = { role: "assistant", content: "", language: langMap[targetLang] }
+        setMessages(prev => [...prev, assistantMsg])
+
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("target_language", langMap[targetLang])
+
+            const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN() : OpenAPI.TOKEN;
+
+            const response = await fetch(`${OpenAPI.BASE}/api/v1/ai-agents/translate-file`, {
+                method: "POST",
+                headers: {
+                    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.detail || "文件翻译请求失败")
+            }
+
+            const reader = response.body?.getReader()
+            if (!reader) throw new Error("无法读取响应流")
+
+            const decoder = new TextDecoder()
+            let accumulatedContent = ""
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value, { stream: true })
+                accumulatedContent += chunk
+
+                setMessages(prev => {
+                    const next = [...prev]
+                    if (next.length > 0) {
+                        next[next.length - 1] = {
+                            ...next[next.length - 1],
+                            content: accumulatedContent
+                        }
+                    }
+                    return next
+                })
+            }
+        } catch (error: any) {
+            console.error("Streaming error:", error)
+            setMessages(prev => {
+                const next = [...prev]
+                if (next.length > 0) {
+                    next[next.length - 1] = {
+                        ...next[next.length - 1],
+                        content: `出错了: ${error.message}`
+                    }
+                }
+                return next
+            })
+        } finally {
+            setIsStreaming(false)
+            if (fileInputRef.current) fileInputRef.current.value = ""
+        }
+    }
+
     const clearHistory = () => {
         setMessages([])
     }
@@ -123,11 +217,11 @@ export const ProjectTable = () => {
                             <SelectValue placeholder="目标语言" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="中文">中文</SelectItem>
-                            <SelectItem value="English">English</SelectItem>
-                            <SelectItem value="日本語">日本語</SelectItem>
-                            <SelectItem value="Français">Français</SelectItem>
-                            <SelectItem value="Deutsch">Deutsch</SelectItem>
+                            {Object.keys(langMap).map((lang) => (
+                                <SelectItem key={lang} value={lang}>
+                                    {lang}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                     <Button variant="ghost" size="icon" onClick={clearHistory} title="清除历史">
@@ -167,8 +261,8 @@ export const ProjectTable = () => {
                                         </div>
                                     )}
                                     <div className={`p-3 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.role === "user"
-                                            ? "bg-primary text-primary-foreground rounded-tr-none"
-                                            : "bg-muted/80 backdrop-blur-sm rounded-tl-none border border-border"
+                                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                                        : "bg-muted/80 backdrop-blur-sm rounded-tl-none border border-border"
                                         }`}>
                                         {msg.content || (isStreaming && idx === messages.length - 1 ? (
                                             <span className="flex gap-1 items-center">
@@ -193,8 +287,25 @@ export const ProjectTable = () => {
                         onSubmit={(e) => { e.preventDefault(); handleTranslate(); }}
                         className="flex gap-2"
                     >
+                        <input
+                            type="file"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept=".pdf,.docx,.doc"
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            disabled={isStreaming}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="shrink-0 h-11 w-11 border-dashed border-2 hover:border-primary hover:text-primary transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </Button>
                         <Input
-                            placeholder="输入要翻译的文本..."
+                            placeholder="输入要翻译的文本或上传文件..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             disabled={isStreaming}
