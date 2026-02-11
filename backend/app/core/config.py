@@ -64,6 +64,17 @@ class Settings(BaseSettings):
     DB_NAME: str = ""
     DB_ECHO: bool = False
 
+    # Milvus / LlamaIndex
+    MILVUS_URI: str = ""
+    MILVUS_HOST: str = ""
+    MILVUS_PORT: int = 19530
+    MILVUS_USER: str = ""
+    MILVUS_PASSWORD: str = ""
+    MILVUS_DB_NAME: str = "default"
+    MILVUS_TOKEN: str = ""
+    MILVUS_COLLECTION: str = "llamaindex_demo"
+    LLAMAINDEX_EMBEDDING_DIM: int = 2048
+
     # LLM
     LLM_MODEL_ID: str = "gpt-3.5-turbo"
     LLM_API_KEY: str = ""

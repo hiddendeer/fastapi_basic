@@ -5,10 +5,15 @@ from fastapi.responses import StreamingResponse
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, PydanticOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from typing import Dict
 import pypdf
 import docx
 import os
 import tempfile
+
+
 
 win32com_client = None
 pythoncom_module = None
@@ -207,3 +212,73 @@ async def translate_file(
             yield chunk
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@router.post("/langchain-function")
+async def langchainFunction(request: ChatRequest) -> Any:
+    """
+    6. 带记忆的对话演示 (新版 LCEL 方式)
+    展示如何使用 RunnableWithMessageHistory 实现多轮对话记忆
+    """
+    llm = get_llm()
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "你是一个友好的助手，请根据对话历史回答用户的问题"),
+        ("placeholder"," {chat_history}"),
+        ("user", "{input}")
+    ])
+
+    # 构建链
+    chain = prompt | llm | StrOutputParser()
+
+    # 使用内存存储对话历史（生产环境应使用数据库或 Redis）
+    store: Dict[str, list[BaseChatMessageHistory]] = {}
+
+    def get_session_history(session_id: str) -> BaseChatMessageHistory:
+        if session_id not in store:
+            store[session_id] = []
+        # 从列表创建历史记录
+        history = BaseChatMessageHistory()
+        history.messages = store[session_id]
+        return history
+
+    # 包装链以支持历史记录
+    conversational_chain = RunnableWithMessageHistory(
+        runnable=chain,
+        get_session_history=get_session_history,
+        input_messages_key="input",
+        history_messages_key="chat_history",
+    )
+
+    # 调用链
+    config = {"configurable": {"session_id": "default_session"}}
+    result = await conversational_chain.ainvoke(
+        {"input": request.message},
+        config=config
+    )
+
+    return result
+
+
+async def langchainReact(request: ChatRequest) -> Any:
+    """
+    7. Agent 演示 (LangChain 1.2+ 新 API)
+    展示如何使用 LangChain Agent 调用工具完成任务
+    """
+    from langchain.agents import create_agent
+
+    llm = get_llm()
+
+    tools = []
+
+    # 创建 agent (LangGraph 方式)
+    agent = create_agent(
+        model=llm,
+        tools=tools,
+        system_prompt="你是一个友好的助手"
+    )
+
+    # 调用 agent
+    result = await agent.ainvoke({"messages": [("user", request.message)]})
+
+    # 返回最后一条消息
+    return result["messages"][-1].content

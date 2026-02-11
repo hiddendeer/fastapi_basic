@@ -1,6 +1,7 @@
 import { useProjects } from "../api/projects"
 import { useProjectFilters } from "../hooks/useProjectFilters"
 import { Input } from "@/components/ui/input"
+import { VuetoReact, ProjectContext } from "./VuetoReact"
 
 export const ProjectTable = () => {
     const { data: projects, isLoading } = useProjects()
@@ -8,8 +9,20 @@ export const ProjectTable = () => {
 
     if (isLoading) return <div>Loading projects...</div>
 
+    const onyes = (total: number) => {
+        console.log("yes", total)
+    }
+
     return (
         <div className="space-y-4">
+            <ProjectContext.Provider value={{ name: "张三", onYes: onyes }}>
+                <VuetoReact name="张三" onYes={onyes}>
+                    <div className="bg-blue-50 text-blue-600 p-2 rounded text-sm">
+                        🚀 这是一个插入到子组件的 React Slot (Children) 示例
+                    </div>
+                </VuetoReact>
+            </ProjectContext.Provider>
+
             <div className="flex items-center gap-2">
                 <Input
                     type="text"
