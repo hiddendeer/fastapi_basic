@@ -4,6 +4,7 @@ from app.api.v1.endpoints import items, login, private, users, utils
 from app.api.v1.orders import infos
 from app.api.v1.ai_agents import router as ai_agents
 from app.api.v1.liama_index import router as llamaindex_router
+from app.api.v1.alert_agent import alert_router
 
 api_router = APIRouter()
 api_router.include_router(login.router, tags=["login"])
@@ -14,3 +15,4 @@ api_router.include_router(private.router, prefix="/private", tags=["private"])
 api_router.include_router(infos.router, prefix="/orders", tags=["orders"])
 api_router.include_router(ai_agents.router, prefix="/ai-agents", tags=["ai-agents"])
 api_router.include_router(llamaindex_router, prefix="/llamaindex", tags=["llamaindex"])
+api_router.include_router(alert_router, prefix="/alert-agent", tags=["alert-agent"])
